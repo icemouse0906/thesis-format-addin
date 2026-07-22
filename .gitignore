@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.office-addin-dev-certs/
+.vite/
+.env
+.env.*
+certs/*.pem
+certs/*.key
+certs/
+!certs/openssl.cnf
+# office-js 由 postinstall 从 node_modules 复制，体积大且可再生
+public/office-js/
+test-thesis.docx
+*.docx
+.idea/
+.vscode/

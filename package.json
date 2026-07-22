@@ -1,0 +1,29 @@
+{
+  "name": "thesis-format-addin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Word 论文格式一键套用插件",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "sideload": "bash scripts/sideload-mac.sh",
+    "trust-cert": "bash scripts/trust-cert-mac.sh",
+    "smoke": "node scripts/smoke.mjs",
+    "postinstall": "node scripts/copy-office-js.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@microsoft/office-js": "^1.1.110",
+    "@types/node": "^22.10.5",
+    "@types/office-js": "^1.0.512",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

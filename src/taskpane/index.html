@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>论文格式助手</title>
+    <!-- 必须在 office.js 之前恢复 _host_Info，否则 Word API 不会注入 -->
+    <script>
+      (function () {
+        try {
+          var KEY = "__thesis_office_host_hash";
+          var hash = window.location.hash || "";
+          if (hash.indexOf("_host_Info") >= 0) {
+            sessionStorage.setItem(KEY, hash);
+          } else {
+            var saved = sessionStorage.getItem(KEY);
+            if (saved && saved.indexOf("_host_Info") >= 0) {
+              window.location.hash = saved;
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <!-- 本地托管，避免 CDN 403 / 网络拦截导致 Office=N -->
+    <script src="/office-js/office.js"></script>
+  </head>
+  <body>
+    <div id="root">正在连接 Word…</div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
