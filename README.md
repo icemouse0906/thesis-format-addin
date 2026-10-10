@@ -8,7 +8,7 @@
 [![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek_API-411D31)](https://www.deepseek.com/)
 [![Platform](https://img.shields.io/badge/Platform-macOS_Word-000000?logo=apple)](https://www.microsoft.com/microsoft-365/word)
 
-面向「高校论文格式繁琐」痛点：学生已经写完正文，却卡在宋体小四、1.5 倍行距、标题层级、页边距等校级规范上。本项目用 **Office Add-in（任务窗格）** 把「读懂要求」和「改文档」拆开——AI / 规则引擎只负责解析，Word 侧用确定性 API 执行，结果可预览、可勾选、可撤销。
+面向「高校论文格式繁琐」痛点：学生已经写完正文，却卡在宋体小四、1.5 倍行距、标题层级、页边距等校级规范上。本项目用 **Office Add-in（任务窗格）** 把「读懂要求」和「改文档」拆开——AI / 规则引擎只负责解析，Word 侧用确定性 API 执行，规则可预览、可勾选；套用后可尝试 Word 的撤销功能，建议先在文档副本中操作。
 
 ---
 
@@ -76,17 +76,16 @@
 ```bash
 git clone https://github.com/icemouse0906/thesis-format-addin.git
 cd thesis-format-addin
-npm install
+npm ci
+npm run trust-cert  # 首次：生成并信任 localhost 证书（会要求管理员密码）
 npm run dev
 ```
 
 开发服务：`https://localhost:3000/taskpane/index.html`
 
-### 信任本地证书（首次）
+### 本地证书说明
 
-```bash
-npm run trust-cert
-```
+此步骤必须在启动开发服务之前完成。脚本会生成本机证书并加入 macOS 系统钥匙串；不要提交证书或私钥。这里只支持本地开发侧载，不是已发布的 Office 商店应用。
 
 ### 侧载到 Word
 
@@ -99,10 +98,10 @@ npm run sideload
 ### DeepSeek（可选）
 
 1. 在 [DeepSeek 开放平台](https://platform.deepseek.com/) 创建 API Key  
-2. 插件内粘贴并保存（仅存本机 `localStorage`）  
+2. 插件内粘贴并保存（存于本机 `localStorage`，不是系统钥匙串；清空后保存可删除 Key）  
 3. 「智能解析」→ **DeepSeek 智能解析** → 确认套用  
 
-开发态默认 Base URL 为 `/llm`（Vite 代理到官方 API，避免 CORS）。
+开发态默认 Base URL 为 `/llm`（Vite 代理到官方 API，避免 CORS）。调用 AI 时，API Key 与粘贴的格式要求会经本地代理发送至 DeepSeek；自定义 HTTPS 中转也会收到这些内容。不会自动上传整篇 Word 文档。请只使用可信服务；本地规则解析不调用 AI。
 
 ---
 
@@ -135,11 +134,7 @@ scripts/                 # 侧载 / 证书 / office-js 同步
 | `npm run build` | 类型检查 + 生产构建 |
 | `npm run sideload` | 复制 manifest 到 Word `wef` 目录 |
 | `npm run trust-cert` | 安装/信任本地开发证书 |
-| `npm run smoke` | 本地冒烟检查 |
-
----
-
-
+| `npm test` / `npm run smoke` | 真实解析、规则校验和请求边界的离线回归检查 |
 
 ---
 
@@ -150,6 +145,10 @@ scripts/                 # 侧载 / 证书 / office-js 同步
 - DeepSeek 直连受 CORS 限制，生产环境需自建代理或保持开发代理方案。  
 
 ---
+
+## 本次整理与验证
+
+见 [2026-10-10 检查记录](docs/PORTFOLIO_REVIEW_2026-10-10.md)。离线检查与构建不代表已完成真实 Word 宿主验收。
 
 ## License
 

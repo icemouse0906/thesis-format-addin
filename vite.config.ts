@@ -13,9 +13,13 @@ const https =
         key: fs.readFileSync(keyPath),
         cert: fs.readFileSync(certPath),
       }
-    : true;
+    : undefined;
 
-export default defineConfig({
+export default defineConfig(({ command }) => {
+  if (command === "serve" && (!fs.existsSync(keyPath) || !fs.existsSync(certPath))) {
+    throw new Error("缺少本地 HTTPS 证书，请先运行 npm run trust-cert，再运行 npm run dev。");
+  }
+  return {
   plugins: [react()],
   root: path.resolve(__dirname, "src"),
   publicDir: path.resolve(__dirname, "public"),
@@ -48,4 +52,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

@@ -157,7 +157,7 @@ export function App() {
   function saveKey() {
     const next = saveLlmSettings({ apiKey: draftKey.trim(), enabled: true });
     setLlm(next);
-    setParseNotes([`已保存 API Key（${maskApiKey(next.apiKey)}），仅存本机。`]);
+    setParseNotes([`已保存 API Key（${maskApiKey(next.apiKey)}）；调用 AI 时发送到所配置的服务。`]);
   }
 
   async function runApply(real: boolean) {
@@ -276,8 +276,8 @@ export function App() {
       <section className="panel">
         <div className="label">DeepSeek API（自备 Key）</div>
         <p className="desc">
-          Key 只存在本机 localStorage。开发态通过本地代理{" "}
-          <code>/llm</code> 访问官方接口，约几分钱可解析很多次格式说明。
+          Key 保存在本机 localStorage；AI 解析时，Key 和输入的格式要求会发送到配置的服务。
+          默认通过本地代理 <code>/llm</code> 请求 DeepSeek，费用以服务商账单为准。
         </p>
         <input
           className="select"
@@ -306,7 +306,7 @@ export function App() {
         />
         <p className="desc muted-sm">
           默认 <code>/llm</code>（推荐）。若你有自己的中转，可改成
-          https://api.deepseek.com 或中转地址。
+          https://api.deepseek.com 或可信的 HTTPS 中转地址。中转方会收到 Key 和格式要求。
         </p>
       </section>
 

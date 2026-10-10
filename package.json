@@ -10,7 +10,8 @@
     "sideload": "bash scripts/sideload-mac.sh",
     "trust-cert": "bash scripts/trust-cert-mac.sh",
     "smoke": "node scripts/smoke.mjs",
-    "postinstall": "node scripts/copy-office-js.mjs"
+    "postinstall": "node scripts/copy-office-js.mjs",
+    "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "react": "^18.3.1",

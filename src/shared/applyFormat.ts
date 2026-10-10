@@ -1,3 +1,4 @@
+import { validateRules } from "./validateRules";
 import type {
   ApplyOptions,
   FormatRules,
@@ -530,6 +531,7 @@ export async function applyFormatToDocument(
   rules: FormatRules,
   options: ApplyOptions
 ): Promise<ApplyReport> {
+  validateRules(rules);
   const steps: string[] = [];
   const warnings: string[] = [];
 

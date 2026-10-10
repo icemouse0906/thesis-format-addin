@@ -1,3 +1,4 @@
+import { validateRules } from "./validateRules";
 import type { FormatRules } from "./schema";
 import { genericCnThesis } from "./templates";
 
@@ -27,7 +28,7 @@ export function importRulesJson(text: string): FormatRules {
   }
 
   const base: FormatRules = JSON.parse(JSON.stringify(genericCnThesis));
-  return {
+  const rules = {
     ...base,
     ...data,
     id: data.id || `import-${Date.now()}`,
@@ -47,6 +48,8 @@ export function importRulesJson(text: string): FormatRules {
       : base.caption,
     notes: data.notes ?? [`导入于 ${new Date().toLocaleString()}`],
   };
+  validateRules(rules);
+  return rules;
 }
 
 export async function readFileAsText(file: File): Promise<string> {

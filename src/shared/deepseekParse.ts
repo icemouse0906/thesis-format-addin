@@ -1,3 +1,4 @@
+import { validateRules } from "./validateRules";
 import type { FormatRules, StyleRule } from "./schema";
 import { genericCnThesis } from "./templates";
 import type { LlmSettings } from "./settings";
@@ -149,12 +150,13 @@ function mergeLlmIntoRules(data: LlmJson): FormatRules {
     rules.caption = mergeStyle(rules.caption, data.caption);
   }
 
-  const notes = Array.isArray(data.notes) ? data.notes.filter(Boolean) : [];
+  const notes = Array.isArray(data.notes) ? data.notes.filter((note) => typeof note === "string") : [];
   rules.notes = [
     "来源：DeepSeek",
     ...notes.slice(0, 10),
     `正文 ${rules.styles.normal.font.name} ${rules.styles.normal.font.sizePt}pt / 行距 ${rules.styles.normal.paragraph.lineSpacing}`,
   ];
+  validateRules(rules);
   return rules;
 }
 
@@ -171,9 +173,16 @@ function extractJson(text: string): unknown {
 }
 
 function chatUrl(baseUrl: string): string {
-  const b = baseUrl.replace(/\/$/, "");
-  if (b.endsWith("/chat/completions")) return b;
-  return `${b}/chat/completions`;
+  const b = baseUrl.trim().replace(/\/$/, "");
+  if (b === "/llm") return "/llm/chat/completions";
+  let url: URL;
+  try { url = new URL(b); } catch { throw new Error("Base URL 须为 /llm 或可信的 HTTPS 地址"); }
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+    throw new Error("Base URL 须为不带账号、查询参数的 HTTPS 地址");
+  }
+  if (url.pathname.endsWith("/chat/completions")) return url.toString();
+  url.pathname = `${url.pathname.replace(/\/$/, "")}/chat/completions`;
+  return url.toString();
 }
 
 /**
@@ -197,50 +206,65 @@ export async function parseRequirementsWithDeepSeek(
     throw new Error("未配置 API Key。请在「AI 设置」中粘贴 DeepSeek API Key。");
   }
 
-  const res = await fetch(chatUrl(settings.baseUrl), {
-    method: "POST",
-    signal,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${settings.apiKey.trim()}`,
-    },
-    body: JSON.stringify({
-      model: settings.model || "deepseek-chat",
-      temperature: 0.1,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `请解析下列论文/报告格式要求：\n\n${text.slice(0, 12000)}`,
-        },
-      ],
-    }),
-  });
+  const url = chatUrl(settings.baseUrl);
+  const controller = new AbortController();
+  let timedOut = false;
+  const abort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 30000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      signal: controller.signal,
+      redirect: "error",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${settings.apiKey.trim()}`,
+      },
+      body: JSON.stringify({
+        model: settings.model || "deepseek-chat",
+        temperature: 0.1,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: `请解析下列论文/报告格式要求：\n\n${text.slice(0, 12000)}`,
+          },
+        ],
+      }),
+    });
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(
-      `DeepSeek 请求失败 HTTP ${res.status}${body ? `：${body.slice(0, 200)}` : ""}`
-    );
+    if (!res.ok) {
+      throw new Error(
+        `DeepSeek 请求失败 HTTP ${res.status}`
+      );
+    }
+
+    const payload = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const content = payload.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || !content.trim()) throw new Error("DeepSeek 返回空内容");
+
+    const data = extractJson(content) as LlmJson;
+    const rules = mergeLlmIntoRules(data);
+
+    const matched = [
+      `AI 模型：${settings.model}`,
+      `模板名：${rules.name}`,
+      `正文：${rules.styles.normal.font.name} ${rules.styles.normal.font.sizePt}pt`,
+      `标题1：${rules.styles.heading1.font.name} ${rules.styles.heading1.font.sizePt}pt`,
+      `页边距：${rules.page.marginTopCm}/${rules.page.marginBottomCm}/${rules.page.marginLeftCm}/${rules.page.marginRightCm} cm`,
+    ];
+
+    return { rules, matched, unmatched: [] };
+  } catch (error) {
+    if (timedOut) throw new Error("AI 解析超时，请稍后重试或使用本地规则解析");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
   }
-
-  const payload = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = payload.choices?.[0]?.message?.content;
-  if (!content) throw new Error("DeepSeek 返回空内容");
-
-  const data = extractJson(content) as LlmJson;
-  const rules = mergeLlmIntoRules(data);
-
-  const matched = [
-    `AI 模型：${settings.model}`,
-    `模板名：${rules.name}`,
-    `正文：${rules.styles.normal.font.name} ${rules.styles.normal.font.sizePt}pt`,
-    `标题1：${rules.styles.heading1.font.name} ${rules.styles.heading1.font.sizePt}pt`,
-    `页边距：${rules.page.marginTopCm}/${rules.page.marginBottomCm}/${rules.page.marginLeftCm}/${rules.page.marginRightCm} cm`,
-  ];
-
-  return { rules, matched, unmatched: [] };
 }

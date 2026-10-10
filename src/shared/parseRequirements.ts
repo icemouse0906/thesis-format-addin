@@ -14,6 +14,7 @@ function deepClone<T>(v: T): T {
 }
 
 function pickFontSizePt(text: string): number | undefined {
+  if (/小五/.test(text)) return 9;
   if (/小四/.test(text)) return 12;
   if (/四号/.test(text) && !/小四/.test(text)) return 14;
   if (/小三/.test(text)) return 15;
